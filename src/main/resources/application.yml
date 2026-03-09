@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: event-storming-drawio
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: claude-sonnet-4-20250514
+          temperature: 0.1
+          max-tokens: 4096
+
+server:
+  port: 8080
+
+logging:
+  level:
+    com.eventstorming: DEBUG
