@@ -1,0 +1,44 @@
+package com.eventstorming.drawio.adapter.out.ai;
+
+import com.eventstorming.drawio.domain.model.ColorMapping;
+import com.eventstorming.drawio.domain.model.EventStormingBoard;
+import com.eventstorming.drawio.domain.port.out.ImageAnalysisPort;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.stereotype.Component;
+import org.springframework.util.MimeType;
+
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.ai.provider", havingValue = "gemini")
+public class GeminiVisionAdapter implements ImageAnalysisPort {
+
+    private final ChatClient.Builder chatClientBuilder;
+    private final VisionPromptBuilder promptBuilder;
+    private final VisionResponseParser responseParser;
+
+    @Override
+    public EventStormingBoard analyzeImage(byte[] imageData, String mimeType, List<ColorMapping> colorMappings) {
+        log.info("Gemini Vision API 호출 시작 - 이미지 크기: {} bytes, MIME: {}", imageData.length, mimeType);
+
+        String systemPrompt = promptBuilder.buildSystemPrompt(colorMappings);
+        String userPrompt = promptBuilder.buildUserPrompt();
+
+        String response = chatClientBuilder.build()
+                .prompt()
+                .system(systemPrompt)
+                .user(u -> u.text(userPrompt)
+                        .media(MimeType.valueOf(mimeType), new ByteArrayResource(imageData)))
+                .call()
+                .content();
+
+        log.debug("Gemini Vision API 응답: {}", response);
+        return responseParser.parse(response);
+    }
+}
