@@ -13,6 +13,17 @@ spring:
           model: claude-sonnet-4-20250514
           temperature: 0.1
           max-tokens: 4096
+    google:
+      genai:
+        api-key: ${GOOGLE_AI_API_KEY:}
+        chat:
+          options:
+            model: gemini-2.0-flash
+            temperature: 0.1
+
+app:
+  ai:
+    provider: ${AI_PROVIDER:claude}
 
 server:
   port: 8080

@@ -1,6 +1,6 @@
 # Event Storming to draw.io Converter
 
-이벤트 스토밍 보드 사진을 `.drawio` 파일로 자동 변환하는 도구입니다. Claude Vision AI가 포스트잇과 연결선을 인식하고, draw.io 호환 XML을 생성합니다.
+이벤트 스토밍 보드 사진을 `.drawio` 파일로 자동 변환하는 도구입니다. Vision AI가 포스트잇과 연결선을 인식하고, draw.io 호환 XML을 생성합니다.
 
 ## 기술 스택
 
@@ -8,19 +8,20 @@
 |------|------|
 | Java | 17 |
 | Spring Boot | 3.4.3 |
-| Spring AI (Anthropic) | 1.0.0 |
+| Spring AI | 1.1.1 |
+| AI Provider | Claude (Anthropic) / Gemini (Google AI) |
 | Thymeleaf | - |
 | Gradle | 8.12 |
 
 ## 핵심 흐름
 
 ```
-이미지 업로드 → Claude Vision 분석 → JSON 파싱 → mxGraph XML 생성 → .drawio 다운로드
+이미지 업로드 → Vision AI 분석 → JSON 파싱 → mxGraph XML 생성 → .drawio 다운로드
 ```
 
 ```mermaid
 graph LR
-    A[이미지 업로드] --> B[Claude Vision 분석]
+    A[이미지 업로드] --> B[Vision AI 분석]
     B --> C[JSON 파싱]
     C --> D[mxGraph XML 생성]
     D --> E[.drawio 다운로드]
@@ -42,8 +43,8 @@ src/main/java/com/eventstorming/drawio/
 │   │   ├── web/        # BoardController (REST API)
 │   │   └── cli/        # CliAdapter (CLI 실행)
 │   └── out/
-│       └── ai/         # ClaudeVisionAdapter, ClaudeResponseParser, ClaudePromptBuilder
-└── config/             # AnthropicConfig, DefaultColorMappings, GlobalExceptionHandler
+│       └── ai/         # ClaudeVisionAdapter, GeminiVisionAdapter, VisionPromptBuilder, VisionResponseParser
+└── config/             # AiProviderConfig, DefaultColorMappings, GlobalExceptionHandler
 ```
 
 ## 시작하기
@@ -51,7 +52,9 @@ src/main/java/com/eventstorming/drawio/
 ### 사전 요구사항
 
 - Java 17+
-- Anthropic API Key ([발급받기](https://console.anthropic.com/))
+- AI Provider API Key (택 1):
+  - Anthropic API Key ([발급받기](https://console.anthropic.com/))
+  - Google AI API Key ([발급받기](https://aistudio.google.com/apikey))
 
 ### 빌드
 
@@ -61,8 +64,16 @@ src/main/java/com/eventstorming/drawio/
 
 ### 웹 실행
 
+#### Claude (기본값)
+
 ```bash
 ANTHROPIC_API_KEY=sk-xxx ./gradlew bootRun
+```
+
+#### Gemini
+
+```bash
+AI_PROVIDER=gemini GOOGLE_AI_API_KEY=AIza... ./gradlew bootRun
 ```
 
 브라우저에서 `http://localhost:8080` 접속
@@ -82,6 +93,15 @@ java -jar build/libs/event-storming-drawio-0.0.1-SNAPSHOT.jar \
 | `--image` | O | 이벤트 스토밍 보드 이미지 경로 (png, jpg, webp) |
 | `--output` | X | 출력 파일 경로 (기본값: 이미지명.drawio) |
 | `--mapping` | X | 커스텀 색상 매핑 (형식: `color:TYPE,color:TYPE`) |
+
+## AI Provider 설정
+
+`app.ai.provider` 속성으로 AI provider를 전환합니다. 환경변수 `AI_PROVIDER`로도 설정 가능합니다.
+
+| Provider | 설정값 | 환경변수 | 모델 |
+|----------|--------|----------|------|
+| Claude (기본) | `claude` | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
+| Gemini | `gemini` | `GOOGLE_AI_API_KEY` | gemini-2.0-flash |
 
 ## API 엔드포인트
 
@@ -123,21 +143,33 @@ java -jar build/libs/event-storming-drawio-0.0.1-SNAPSHOT.jar \
 | 테스트 클래스 | 검증 항목 |
 |--------------|-----------|
 | `DrawioXmlGeneratorTest` | mxGraph XML 생성, 빈 보드 처리 |
-| `ClaudeResponseParserTest` | JSON 코드블록 파싱, 순수 JSON 파싱, 알 수 없는 타입 처리 |
+| `VisionResponseParserTest` | JSON 코드블록 파싱, 순수 JSON 파싱, 알 수 없는 타입 처리 |
 
 ## 설정
 
 `application.yml`에서 주요 설정을 변경할 수 있습니다:
 
 ```yaml
+app:
+  ai:
+    provider: ${AI_PROVIDER:claude}  # claude 또는 gemini
+
 spring:
   ai:
     anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
       chat:
         options:
           model: claude-sonnet-4-20250514
           temperature: 0.1
           max-tokens: 4096
+    google:
+      genai:
+        api-key: ${GOOGLE_AI_API_KEY:}
+        chat:
+          options:
+            model: gemini-2.0-flash
+            temperature: 0.1
   servlet:
     multipart:
       max-file-size: 20MB

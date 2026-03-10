@@ -6,6 +6,7 @@ import com.eventstorming.drawio.domain.port.out.ImageAnalysisPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MimeType;
@@ -15,11 +16,12 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.ai.provider", havingValue = "claude", matchIfMissing = true)
 public class ClaudeVisionAdapter implements ImageAnalysisPort {
 
     private final ChatClient.Builder chatClientBuilder;
-    private final ClaudePromptBuilder promptBuilder;
-    private final ClaudeResponseParser responseParser;
+    private final VisionPromptBuilder promptBuilder;
+    private final VisionResponseParser responseParser;
 
     @Override
     public EventStormingBoard analyzeImage(byte[] imageData, String mimeType, List<ColorMapping> colorMappings) {
