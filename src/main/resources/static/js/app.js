@@ -129,7 +129,51 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
+        const markdown = generateMarkdown(data);
+
+        document.getElementById('download-md-btn').onclick = () => {
+            const blob = new Blob([markdown], {type: 'text/markdown;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'event-storming-result.md';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        document.getElementById('copy-md-btn').onclick = () => {
+            navigator.clipboard.writeText(markdown).then(() => {
+                alert('Markdown이 클립보드에 복사되었습니다.');
+            });
+        };
+
         resultSection.scrollIntoView({behavior: 'smooth'});
+    }
+
+    function generateMarkdown(data) {
+        const postIts = data.board.postIts;
+        const connections = data.board.connections;
+        let md = '# 이벤트 스토밍 분석 결과\n\n';
+        md += `포스트잇: ${postIts.length}개 | 연결선: ${connections.length}개\n\n`;
+
+        md += '## 포스트잇\n\n';
+        md += '| ID | 텍스트 | 유형 | 색상 | 위치 |\n';
+        md += '|----|--------|------|------|------|\n';
+        postIts.forEach(p => {
+            const pos = `(${Math.round(p.position.x)}, ${Math.round(p.position.y)})`;
+            md += `| ${p.id} | ${p.text} | ${p.type} | ${p.detectedColor} | ${pos} |\n`;
+        });
+
+        if (connections.length > 0) {
+            md += '\n## 연결선\n\n';
+            md += '| ID | 출발 | 도착 | 라벨 |\n';
+            md += '|----|------|------|------|\n';
+            connections.forEach(c => {
+                md += `| ${c.id} | ${c.fromId} | ${c.toId} | ${c.label || ''} |\n`;
+            });
+        }
+
+        return md;
     }
 
     function showError(message) {
